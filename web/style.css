@@ -1,0 +1,101 @@
+/* 星露谷暖色调：奶油底 + 原木面板 + 麦当劳红黄点缀；全程像素渲染 */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  display: flex; flex-direction: column;
+  background: #f3e5c3; /* 奶油纸色 */
+  font-family: "PingFang SC", "Microsoft YaHei", monospace;
+  user-select: none; overflow: hidden;
+}
+
+/* ---------- 上半屏：场景 ---------- */
+#scene-wrap {
+  flex: 0 0 52%;
+  position: relative;
+  background: #5b3a29; /* 门店深木色 */
+  border-bottom: 6px solid #3c2417;
+  display: flex; align-items: center; justify-content: center;
+}
+#scene {
+  width: 100%; height: 100%;
+  image-rendering: pixelated;
+}
+#plate {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; background: rgba(30, 16, 8, .55);
+}
+#plate.hidden { display: none; }
+.plate-store {
+  background: #f7d354; color: #4a2410; font-weight: 700;
+  padding: 4px 10px; border: 3px solid #4a2410; font-size: 13px;
+  box-shadow: 4px 4px 0 #2a160a;
+}
+.plate-no {
+  font-size: 56px; font-weight: 900; color: #fff;
+  background: #da291c; border: 4px solid #7e140c;
+  padding: 6px 26px; letter-spacing: 4px;
+  box-shadow: 6px 6px 0 #2a160a;
+}
+.plate-hint { color: #ffe9b3; font-size: 12px; text-shadow: 1px 1px 0 #2a160a; }
+
+/* ---------- 下半屏：游戏机 ---------- */
+#console {
+  flex: 1;
+  background: linear-gradient(#e8b04b, #d99a33); /* 机身麦黄 */
+  border-top: 4px solid #8a5a1d;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  gap: 8px;
+}
+#lcd {
+  width: 100%; max-width: 420px; flex: 1;
+  background: #2b2b23; /* 液晶底 */
+  border: 4px solid #7a4a12; border-radius: 6px;
+  box-shadow: inset 0 0 0 3px #1a1a14, 4px 4px 0 #8a5a1d;
+  padding: 8px 10px; overflow-y: auto;
+  color: #d8f089; /* 液晶黄绿字 */
+  font-size: 13px; line-height: 1.5;
+}
+#lcd-title { font-size: 10px; letter-spacing: 2px; color: #8fae4e; border-bottom: 1px dashed #55663a; padding-bottom: 4px; margin-bottom: 6px; }
+#lcd-choices { margin-top: 6px; }
+.choice {
+  padding: 4px 8px; margin: 3px 0; border: 2px solid transparent;
+  color: #b9d16e;
+}
+.choice.sel { border-color: #d8f089; background: #3a4a22; color: #f4ffb0; }
+.choice small { color: #8fae4e; }
+.dim { color: #7d8f52; font-size: 11px; }
+.price { color: #ffe36e; }
+.blink { animation: bl 1s steps(2) infinite; }
+@keyframes bl { 50% { opacity: 0; } }
+
+/* 按键区 */
+#pad { width: 100%; max-width: 420px; display: flex; justify-content: space-between; align-items: center; }
+#dpad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 40px); gap: 4px; }
+.key {
+  grid-column: 2; grid-row: 1;
+  background: #6e4a1f; color: #ffe9b3; border: 0; border-radius: 6px;
+  font-size: 14px; box-shadow: 0 4px 0 #47300f;
+}
+.key[data-k="left"]  { grid-column: 1; grid-row: 2; }
+.key[data-k="right"] { grid-column: 3; grid-row: 2; }
+.key[data-k="down"]  { grid-column: 2; grid-row: 2; }
+.key:active { transform: translateY(3px); box-shadow: 0 1px 0 #47300f; }
+#ab { display: flex; gap: 14px; align-items: center; }
+.round {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: #c9372c; color: #fff; font-weight: 900; font-size: 18px;
+  border: 0; box-shadow: 0 5px 0 #7e140c;
+}
+.round.b { background: #d99a33; color: #6e4a1f; box-shadow: 0 5px 0 #8a5a1d; }
+.round:active { transform: translateY(3px); box-shadow: 0 1px 0 #7e140c; }
+#meta { width: 100%; max-width: 420px; display: flex; justify-content: space-between; align-items: center; }
+.pill {
+  background: #fff6df; color: #6e4a1f; border: 3px solid #6e4a1f;
+  border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: 12px;
+  box-shadow: 0 4px 0 #8a5a1d;
+}
+.pill:active { transform: translateY(3px); box-shadow: 0 1px 0 #8a5a1d; }
+#mode-tag { font-size: 10px; color: #6e4a1f; background: #fff6df; border: 2px solid #6e4a1f; padding: 2px 8px; border-radius: 4px; }
+#mode-tag.live { background: #da291c; color: #fff; border-color: #7e140c; }
