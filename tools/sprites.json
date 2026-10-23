@@ -1,0 +1,23 @@
+{
+ "cell": {
+  "w": 37,
+  "h": 51
+ },
+ "atlas": {
+  "w": 148,
+  "h": 204
+ },
+ "dirs": [
+  "down",
+  "left",
+  "up",
+  "right"
+ ],
+ "chars": [
+  "xiaomai",
+  "xiaoshu",
+  "xiaobao",
+  "xiaobing"
+ ],
+ "source": "tools/staff-source.png"
+}

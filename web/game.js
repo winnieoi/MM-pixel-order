@@ -29,17 +29,18 @@ let sel = 0;            // 当前选中项
 let onConfirm = null;   // A 键回调 (value) => {}
 let onCancel = null;    // B 键回调
 
-function show(bodyHtml, opts = []) {
+function show(bodyHtml, opts) {
   lcdBody.innerHTML = bodyHtml;
-  choices = opts;
+  choices = opts || [];
   sel = 0;
-  lcdChoices.innerHTML = opts.map((o, i) => `<div class="choice${i === 0 ? ' sel' : ''}" data-i="${i}">${o.label}</div>`).join('');
+  lcdChoices.innerHTML = choices.map((o, i) => `<div class="choice${i === 0 ? ' sel' : ''}" data-i="${i}">${o.label}</div>`).join('');
+  lcdChoices.style.display = choices.length ? '' : 'none';
   [...lcdChoices.children].forEach((el) => el.addEventListener('click', () => { sel = +el.dataset.i; paint(); press('a'); }));
 }
 function paint() {
   [...lcdChoices.children].forEach((el, i) => el.classList.toggle('sel', i === sel));
 }
-function showChoice(opts, confirm, cancel) { onConfirm = confirm; onCancel = cancel || null; }
+function showChoice(confirm, cancel) { onConfirm = confirm; onCancel = cancel || null; }
 function clearActions() { onConfirm = null; onCancel = null; }
 
 // ---------- 输入 ----------
@@ -131,7 +132,6 @@ function browsePlan(idx) {
     `${lines}<br>──────<br>总价 <span class="price">¥${p.total}</span> · 人均 ¥${p.perPerson} · ${p.kcalPerPerson} kcal/人` +
     (p.discount ? `<br><span class="dim">已按套餐组合省 ¥${p.discount}</span>` : '') +
     `<br><span class="dim">💡 ${p.reason}</span><br><br>A 认准这单 · ▲▼ 换方案`,
-    p.items.map(() => ({ label: '' })),
   );
   showChoice(() => { currentPlan = p; placeOrder(); }, () => {
     idx > 0 ? browsePlan(idx - 1) : renderQuestion(0);
@@ -184,7 +184,7 @@ function renderReview() {
   lcdTitle.textContent = '用餐评价';
   show(`这顿打几分？<br><span class="dim">▲▼ 选星级 · A 确认</span>`, [[1], [2], [3], [4], [5]].map((s, i) => ({ label: '⭐'.repeat(5 - i), value: 5 - i })));
   showChoice(async (stars) => {
-    await api.post('/api/reviews', { stars, tag: profile.goal, text: `${profile.people}人·${profile.goal}`, pickupNo: order.pickupNo });
+    await api.post('/api/reviews', { stars, tag: profile.goal, text: `${profile.people}人·${profile.goal}`, pickupNo: order?.pickupNo || "" });
     renderWall();
   }, () => renderWall());
 }

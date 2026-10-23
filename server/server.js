@@ -15,11 +15,13 @@ const WEB = path.join(__dirname, '..', 'web');
 
 // ---------- 订单内存表（demo 模式的状态推进；live 模式状态以 MCP 查询为准） ----------
 const orders = new Map(); // orderId -> { ...order, statusTimeline }
+// demo 演示节奏：默认 36 秒出餐（DEMO_READY_SECONDS 可调）。现场录屏够快，又留得住"备餐"过程。
+const DEMO_READY_SECONDS = Number(process.env.DEMO_READY_SECONDS || 36);
 function tickOrder(o) {
   const age = (Date.now() - Date.parse(o.placedAt)) / 1000;
-  const readyAt = (o.etaMinutes || 5) * 20; // demo: 加速演示，1分钟eta≈20秒
+  const readyAt = o.mode === 'demo' ? DEMO_READY_SECONDS : (o.etaMinutes || 5) * 20;
   if (age > readyAt) o.status = 'ready';
-  else if (age > readyAt * 0.4) o.status = 'preparing';
+  else if (age > readyAt * 0.25) o.status = 'preparing';
   return o;
 }
 
