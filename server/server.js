@@ -35,7 +35,13 @@ function saveReviews() { fs.writeFile(reviewsFile, JSON.stringify(reviews, null,
 // ---------- 工具 ----------
 function send(res, code, data, type = 'application/json') {
   const body = typeof data === 'string' || Buffer.isBuffer(data) ? data : JSON.stringify(data);
-  res.writeHead(code, { 'Content-Type': `${type}; charset=utf-8`, 'Access-Control-Allow-Origin': '*' });
+  res.writeHead(code, {
+    'Content-Type': `${type}; charset=utf-8`,
+    'Access-Control-Allow-Origin': '*',
+    // 本地开发：禁止缓存，避免改了前端但浏览器还拿旧版（背景/样式不刷新）
+    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+    Pragma: 'no-cache',
+  });
   res.end(body);
 }
 function readBody(req) {
