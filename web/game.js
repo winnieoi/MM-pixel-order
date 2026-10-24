@@ -18,35 +18,79 @@ const coinsEl = $('#coins');
 const modeTag = $('#mode-tag');
 const plateEl = $('#plate');
 
+async function readResponse(response) {
+  if (!response.ok) throw new Error(`请求失败（${response.status}）`);
+  return response.json();
+}
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>\"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+function safeHttpHref(value) {
+  try {
+    const url = new URL(String(value ?? ''));
+    return url.protocol === 'http:' || url.protocol === 'https:' ? escapeHtml(url.href) : '';
+  } catch { return ''; }
+}
+function safeStars(value) {
+  const stars = Number(value);
+  return Number.isFinite(stars) ? Math.min(5, Math.max(1, Math.round(stars))) : 1;
+}
+function starsLabel(value) { return `${safeStars(value)} 星`; }
+function itemCount(items) {
+  return items.reduce((count, item) => {
+    const qty = Number(item.qty);
+    return count + (Number.isFinite(qty) && qty > 0 ? qty : 0);
+  }, 0);
+}
+async function request(url, init = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    return await readResponse(await fetch(url, { ...init, signal: controller.signal }));
+  } finally {
+    clearTimeout(timer);
+  }
+}
 const api = {
-  get: (u) => fetch(u).then((r) => r.json()),
-  post: (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then((r) => r.json()),
+  get: (u) => request(u),
+  post: (u, b) => request(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
 };
 
 // ---------- 全局状态 ----------
 window.gameState = 'title';
+let scrollFrame = null;
 function setState(s) {
   window.gameState = s;
+  $('#app').dataset.state = s;
   window.dispatchEvent(new CustomEvent('game:state', { detail: { state: s } }));
+  cancelAnimationFrame(scrollFrame);
+  scrollFrame = requestAnimationFrame(() => {
+    scrollFrame = null;
+    if (window.gameState !== s) return;
+    if (s === 'title') {
+      $('#app').scrollIntoView({ block: 'start', behavior: 'auto' });
+      return;
+    }
+    const panel = $('#panel');
+    const rect = panel.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    if (rect.top < 0 || rect.top >= viewportHeight || rect.bottom <= 0) {
+      panel.scrollIntoView({ block: 'start', behavior: 'auto' });
+    }
+  });
 }
 function dispatchGame(type, detail) { window.dispatchEvent(new CustomEvent(type, { detail })); }
 window.dispatchGame = dispatchGame;
 
 const profile = { people: 1, goal: '', avoid: [], budget: 0, preset: '' };
 let plans = [], currentPlan = null, order = null;
-let pollTimer = null;
+let pollTimer = null, plateTimer = null;
+let pollInFlight = false;
+let flowVersion = 0;
 let options = [], sel = 0;
 let wallet = 888;
-
-// ---------- 小麦头像（图集裁切） ----------
-const SPRITE_CELL_W = 37, SPRITE_CELL_H = 51;
-function spriteBg(el, charIdx, dirIdx, scale) {
-  el.style.backgroundImage = "url('assets/staff.png')";
-  el.style.backgroundSize = `${4 * SPRITE_CELL_W * scale}px ${4 * SPRITE_CELL_H * scale}px`;
-  el.style.backgroundPosition = `-${charIdx * SPRITE_CELL_W * scale}px -${dirIdx * SPRITE_CELL_H * scale}px`;
-}
-spriteBg($('#avatar'), 0, 0, 1.7);        // 小麦 · 正面大头像
-spriteBg($('#mini-avatar'), 0, 0, 1.2);   // 欢迎光临角标小头像
 
 // ---------- 渲染原语 ----------
 function say(html) { speechEl.innerHTML = html; }
@@ -56,73 +100,119 @@ function setCard(html) {
 }
 function setOptions(list, cols) {
   options = list || [];
-  sel = 0;
+  const isTitle = window.gameState === 'title';
+  const focusedIndex = document.activeElement?.parentElement === optionsEl
+    ? Number(document.activeElement.dataset.i) : -1;
+  sel = isTitle ? (focusedIndex >= 0 ? focusedIndex : 0) : 0;
   optionsEl.className = cols ? `cols${cols}` : '';
   optionsEl.innerHTML = options.map((o, i) => `
-    <button class="opt tone-${o.tone || ['green', 'blue', 'purple'][i % 3]}" data-i="${i}">
-      ${o.badge ? `<span class="new">${o.badge}</span>` : ''}
+    <button type="button" class="opt${isTitle ? ' home-option' : ''} tone-${escapeHtml(o.tone || ['green', 'blue', 'purple'][i % 3])}" data-i="${i}"${isTitle ? ` data-art="${escapeHtml(o.art)}"` : ''}${typeof o.on === 'boolean' ? ` aria-pressed="${o.on}"` : ''}>
+      ${o.badge ? `<span class="new">${escapeHtml(o.badge)}</span>` : ''}
       ${o.on ? '<span class="check">✓</span>' : ''}
-      <span class="oi">${o.icon || ''}</span>
-      <span class="ol">${o.label}</span>
-      ${o.sub ? `<span class="os">${o.sub}</span>` : ''}
+      <span class="oi">${escapeHtml(o.icon || '')}</span>
+      <span class="ol">${escapeHtml(o.label)}</span>
+      ${o.sub ? `<span class="os">${escapeHtml(o.sub)}</span>` : ''}
     </button>`).join('');
-  optionsEl.style.display = options.length ? 'grid' : 'none';
-  [...optionsEl.children].forEach((el, i) => el.addEventListener('click', () => { sel = i; paint(); options[i].act(); }));
+  // Let CSS choose the homepage layout; only force-hide an empty option list.
+  optionsEl.style.display = options.length ? '' : 'none';
+  [...optionsEl.children].forEach((el, i) => {
+    if (isTitle) el.setAttribute('aria-label', options[i].label);
+    el.addEventListener('focus', () => { sel = i; paint(); });
+    el.addEventListener('click', () => { sel = i; paint(); options[i].act(); });
+  });
+  if (focusedIndex >= 0 && focusedIndex < optionsEl.children.length) {
+    sel = focusedIndex;
+    optionsEl.children[focusedIndex].focus({ preventScroll: true });
+  }
   paint();
 }
 function paint() {
-  [...optionsEl.children].forEach((el, i) => el.classList.toggle('sel', i === sel));
+  [...optionsEl.children].forEach((el, i) => {
+    const selected = i === sel;
+    el.classList.toggle('sel', selected);
+  });
 }
 function setPrimary(label, fn, disabled, cartCount) {
   primaryLabel.textContent = label;
   primaryBtn.disabled = !!disabled;
   primaryBtn.onclick = fn || null;
   primaryBtn.querySelectorAll('.badge-cart').forEach((n) => n.remove());
-  if (cartCount) {
-    const b = document.createElement('span');
-    b.className = 'badge-cart'; b.textContent = cartCount;
-    primaryBtn.appendChild(b);
-  }
+  if (cartCount !== undefined) $('#bag-count').textContent = cartCount;
 }
-function setWallet(n) { wallet = Math.max(0, Math.round(n)); coinsEl.textContent = wallet; }
+function setWallet(n) {
+  wallet = Number.isFinite(Number(n)) ? Math.max(0, Math.round(Number(n))) : wallet;
+  coinsEl.textContent = wallet;
+  delete coinsEl.dataset.initial;
+}
 
 // ---------- 键盘（桌面调试用） ----------
 addEventListener('keydown', (e) => {
-  const map = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', Enter: 'a', Escape: 'b' };
-  const k = map[e.key];
-  if (!k) return;
-  if ((k === 'up' || k === 'left') && options.length) { sel = (sel - 1 + options.length) % options.length; paint(); }
-  if ((k === 'down' || k === 'right') && options.length) { sel = (sel + 1) % options.length; paint(); }
-  if (k === 'a') { if (options.length) options[sel].act(); else if (!primaryBtn.disabled) primaryBtn.click(); }
+  if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return;
+  const active = document.activeElement;
+  const optionButton = active?.closest?.('#options button');
+  const ownButton = optionButton || (active === primaryBtn ? primaryBtn : null);
+  // Handle our buttons once; prevent the browser's extra native Enter click.
+  if (e.key === 'Enter' && ownButton) {
+    e.preventDefault();
+    if (!e.repeat && !ownButton.disabled) ownButton.click();
+    return;
+  }
+  const interactive = 'button, a, input, select, textarea, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [tabindex]:not([tabindex="-1"])';
+  if (!optionButton && (e.target?.closest?.(interactive) || active?.closest?.(interactive))) return;
+  const map = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 };
+  if (map[e.key] && options.length) {
+    e.preventDefault();
+    sel = sel < 0 ? (map[e.key] > 0 ? 0 : options.length - 1) : (sel + map[e.key] + options.length) % options.length;
+    paint();
+    optionsEl.children[sel]?.focus({ preventScroll: true });
+  } else if (e.key === 'Enter' && (options.length || !primaryBtn.disabled)) {
+    e.preventDefault();
+    if (e.repeat) return;
+    if (options.length) optionsEl.children[Math.max(0, sel)]?.click();
+    else primaryBtn.click();
+  }
 });
 
 // ---------- 流程 ----------
 function renderTitle() {
+  flowVersion++;
+  clearInterval(pollTimer);
+  clearTimeout(plateTimer);
+  pollTimer = plateTimer = null;
+  plans = []; currentPlan = null; order = null;
+  Object.assign(profile, { people: 1, goal: '', avoid: [], budget: 0, preset: '', perPerson: 0 });
+  plateEl.classList.add('hidden');
+  $('#plate-no').textContent = '';
+  $('#plate-store').textContent = '';
+  modeTag.textContent = 'demo';
+  modeTag.classList.remove('live');
+  setWallet(888);
   setState('title');
-  say('欢迎光临麦门星球！<br>今天想吃什么？');
+  dispatchGame('scene:status', { status: 'idle', order: null });
+  say('今天想吃点什么？');
   setCard(null);
   setOptions([
-    { label: '省钱套餐', icon: '💰', tone: 'green', sub: '人均¥25', act: () => preset('省钱套餐', '放纵', 25) },
-    { label: '轻松吃', icon: '🥗', tone: 'blue', sub: '人均¥35', act: () => preset('轻松吃', '减脂', 35) },
-    { label: '尝新品', icon: '🍟', tone: 'purple', badge: 'NEW', sub: '人均¥50', act: () => preset('尝新品', '尝新', 50) },
+    { label: '省钱套餐', art: 'save', tone: 'green', sub: '人均¥25', act: () => preset('省钱套餐', '放纵', 25) },
+    { label: '轻松吃', art: 'light', tone: 'blue', sub: '人均¥35', act: () => preset('轻松吃', '减脂', 35) },
+    { label: '尝新品', art: 'new', tone: 'purple', sub: '人均¥50', act: () => preset('尝新品', '尝新', 50) },
   ]);
-  setPrimary('开始点餐 →', () => askPeople());
+  setPrimary('开始点餐 →', askPeople, false, 0);
 }
 
 function preset(name, goal, perPerson) {
   profile.preset = name; profile.goal = goal; profile.perPerson = perPerson;
-  say(`${name}，好选择！<br>几位一起吃呀？`);
   askPeople();
 }
 
 function askPeople() {
   setState('chat');
+  say(profile.preset ? `${escapeHtml(profile.preset)}，好选择！<br>几位一起吃呀？` : '几位一起吃呀？');
   setCard(null);
   setOptions([
-    { label: '1 人', icon: '🧍', tone: 'green', act: () => { profile.people = 1; next('avoid'); } },
-    { label: '2 人', icon: '👫', tone: 'blue', act: () => { profile.people = 2; next('avoid'); } },
-    { label: '3~4 人', icon: '👨‍👩‍👧', tone: 'purple', act: () => { profile.people = 4; next('avoid'); } },
-    { label: '5 人以上', icon: '🎉', tone: 'red', act: () => { profile.people = 6; next('avoid'); } },
+    { label: '1 人', icon: '1', tone: 'green', act: () => { profile.people = 1; next('avoid'); } },
+    { label: '2 人', icon: '2', tone: 'blue', act: () => { profile.people = 2; next('avoid'); } },
+    { label: '3~4 人', icon: '3', tone: 'purple', act: () => { profile.people = 4; next('avoid'); } },
+    { label: '5 人以上', icon: '5+', tone: 'red', act: () => { profile.people = 6; next('avoid'); } },
   ], 2);
   setPrimary('上一步 →', renderTitle);
 }
@@ -133,7 +223,7 @@ function askAvoid() {
   say('有要忌口的吗？<br><small>可多选，选完点下面按钮</small>');
   const avoidList = [['不吃辣', '辣'], ['不吃牛肉', '牛肉'], ['不吃猪肉', '猪肉'], ['不吃海鲜', '海鲜']];
   setOptions(avoidList.map(([label, v]) => ({
-    label, icon: '🚫', tone: 'yellow',
+    label, icon: '', tone: 'yellow',
     on: profile.avoid.includes(v),
     act: () => {
       const i = profile.avoid.indexOf(v);
@@ -150,21 +240,25 @@ function askAvoid() {
 function next() { askAvoid(); }
 
 async function fetchPlans() {
+  const version = ++flowVersion;
   setState('recommend');
   say('小麦：让我翻翻今天的菜单…');
   setOptions([]);
-  setPrimary('推荐中…', null, true);
+  setCard(null);
+  setPrimary('推荐中…', null, true, 0);
   try {
     const res = await api.post('/api/recommend', profile);
+    if (version !== flowVersion) return;
     plans = res.plans || [];
     if (!plans.length) {
       say('小麦：呜…这个组合配不出来，<br>换个忌口再试试？');
-      setOptions([{ label: '重新忌口', icon: '🔄', tone: 'blue', act: askAvoid }], 1);
+      setOptions([{ label: '重新忌口', icon: '', tone: 'blue', act: askAvoid }], 1);
       setPrimary('上一步 →', renderTitle);
       return;
     }
     browsePlan(0);
   } catch (e) {
+    if (version !== flowVersion) return;
     say('小麦：网络打了个喷嚏，<br>再点一次试试～');
     setPrimary('重试 →', () => fetchPlans());
   }
@@ -174,31 +268,35 @@ function browsePlan(idx) {
   const p = plans[idx];
   if (!p) return;
   setState('recommend');
-  say(`帮你配好了 · 第 ${idx + 1}/${plans.length} 套<br><small>${p.label}</small>`);
+  say(`帮你配好了 · 第 ${idx + 1}/${plans.length} 套<br><small>${escapeHtml(p.label)}</small>`);
   setCard(`
-    ${p.items.map((it) => `<div class="c-row"><span>${it.qty}× ${it.name}</span><span>¥${it.price}</span></div>`).join('')}
-    <div class="c-sum"><span>总价 ¥${p.total}</span><span>人均 ¥${p.perPerson} · ${p.kcalPerPerson} kcal</span></div>
-    <div class="c-reason">💡 ${p.reason}</div>
+    ${p.items.map((it) => `<div class="c-row"><span>${escapeHtml(it.qty)}× ${escapeHtml(it.name)}</span><span>¥${escapeHtml(it.price)}</span></div>`).join('')}
+    <div class="c-sum"><span>总价 ¥${escapeHtml(p.total)}</span><span>人均 ¥${escapeHtml(p.perPerson)} · ${escapeHtml(p.kcalPerPerson)} kcal</span></div>
+    <div class="c-reason">${escapeHtml(p.reason)}</div>
   `);
   setOptions([
-    { label: '换一套', icon: '🔄', tone: 'blue', act: () => browsePlan((idx + 1) % plans.length) },
-    { label: '就这单', icon: '✅', tone: 'green', act: () => { currentPlan = p; placeOrder(); } },
+    { label: '换一套', icon: '', tone: 'blue', act: () => browsePlan((idx + 1) % plans.length) },
+    { label: '就这单', icon: '', tone: 'green', act: () => { currentPlan = p; placeOrder(); } },
   ], 2);
-  setPrimary('下单 →', () => { currentPlan = p; placeOrder(); }, false, p.items.reduce((s, i) => s + i.qty, 0));
+  setPrimary('下单 →', () => { currentPlan = p; placeOrder(); }, false, itemCount(p.items));
 }
 
 async function placeOrder() {
-  if (!currentPlan) return;
+  if (!currentPlan || (window.gameState === 'ordering' && primaryBtn.disabled)) return;
+  const version = ++flowVersion;
   setState('ordering');
   say('小麦：马上给你下单！<br>后厨要开火了…');
   setOptions([]);
   setPrimary('下单中…', null, true);
   try {
-    order = await api.post('/api/order', {
+    const result = await api.post('/api/order', {
       items: currentPlan.items.map((i) => ({ id: i.id, qty: i.qty })),
       storeId: 'STORE01',
     });
+    if (version !== flowVersion) return;
+    order = result;
   } catch (e) {
+    if (version !== flowVersion) return;
     say('小麦：下单失败了，<br>再试一次？');
     setPrimary('重试 →', placeOrder);
     return;
@@ -212,72 +310,139 @@ async function placeOrder() {
 }
 
 function startKitchen() {
+  clearInterval(pollTimer);
+  clearTimeout(plateTimer);
+  pollTimer = plateTimer = null;
   setState('kitchen');
+  setOptions([]);
+  if (order.status === 'ready') { showPlate(); return; }
   dispatchGame('scene:status', { status: 'preparing', order });
   const t0 = Date.now();
-  const total = order.mode === 'demo' ? 36000 : (order.etaMinutes || 5) * 60000;
+  const eta = Number(order.etaMinutes);
+  const total = order.mode === 'demo' ? 36000 : (Number.isFinite(eta) && eta > 0 ? eta : 5) * 60000;
+  const payHref = safeHttpHref(order.payUrl);
+  say('订单已收到。<br><small>制作进度仅为时间估算，取餐以门店返回的状态为准。</small>');
   setCard(`
-    <div class="c-hdr"><span>${order.store?.name || ''}</span><span>单号 ${order.orderId}</span></div>
-    <div class="c-row"><span>共 ${currentPlan.items.reduce((s, i) => s + i.qty, 0)} 件 · ¥${order.total}</span><span>预计 ${order.etaMinutes} 分钟</span></div>
-    ${order.payUrl ? `<div class="c-reason">💳 真实订单待支付：<a href="${order.payUrl}" target="_blank" rel="noopener">点此支付</a>${order.mcpStatus ? `（当前：${order.mcpStatus}）` : ''}</div>` : ''}
-    <div class="bar"><i style="width:4%"></i></div>
-    <div class="c-reason">店员备餐画面在上面实时直播中…</div>
+    <div class="c-hdr"><span>${escapeHtml(order.store?.name)}</span><span>单号 ${escapeHtml(order.orderId)}</span></div>
+    <div class="c-row"><span>共 ${itemCount(currentPlan.items)} 件 · ¥${escapeHtml(order.total)}</span><span>预计 ${escapeHtml(order.etaMinutes ?? '待确认')} 分钟</span></div>
+    ${order.payUrl ? `<div class="c-reason">订单支付：${payHref ? `<a href="${payHref}" target="_blank" rel="noopener noreferrer">查看支付页面</a>` : '支付链接暂不可用，请向门店确认'}${order.mcpStatus ? `（当前：${escapeHtml(order.mcpStatus)}）` : ''}</div>` : ''}
+    <div class="bar" role="img" aria-label="时间估算进度，非门店实际制作进度"><i style="width:0%"></i></div>
+    <div class="c-reason kitchen-status" role="status">正在查询门店状态；动画与百分比仅为时间估算。</div>
   `);
-  clearInterval(pollTimer);
-  pollTimer = setInterval(async () => {
-    let o = order;
-    try { o = await api.get(`/api/order/${order.orderId}`); order = { ...order, ...o }; } catch { /* 轮询失败静默重试 */ }
-    const pct = Math.min(99, Math.max(4, Math.round(((Date.now() - t0) / total) * 100)));
-    const bar = cardEl.querySelector('.bar i');
-    if (bar) bar.style.width = `${pct}%`;
-    setPrimary(`后厨制作中 ${pct}%`, null, true);
-    if (pct > 22) dispatchGame('scene:status', { status: 'preparing', order });
-    if (o.status === 'ready') { clearInterval(pollTimer); showPlate(); }
-  }, 1000);
+  setPrimary('预计制作进度 0%', null, true);
+  const version = flowVersion;
+  const orderId = order.orderId;
+  const isCurrent = () => version === flowVersion && window.gameState === 'kitchen' && order?.orderId === orderId;
+  const poll = async () => {
+    if (!isCurrent() || pollInFlight) return;
+    pollInFlight = true;
+    try {
+      const result = await api.get(`/api/order/${encodeURIComponent(orderId)}`);
+      if (!isCurrent()) return;
+      order = { ...order, ...result };
+      if (order.status === 'ready') { showPlate(); return; }
+      const elapsed = Date.now() - t0;
+      const pct = Math.min(99, Math.max(0, Math.round(elapsed / total * 100)));
+      const bar = cardEl.querySelector('.bar i');
+      if (bar) bar.style.width = `${pct}%`;
+      const status = cardEl.querySelector('.kitchen-status');
+      if (status) status.textContent = elapsed >= total
+        ? '已超过预计时间，仍在等待门店确认可取餐。'
+        : `门店状态：${order.mcpStatus || order.status || '等待确认'}。百分比仅为时间估算。`;
+      setPrimary(elapsed >= total ? '等待门店确认可取餐…' : `预计制作进度 ${pct}%`, null, true);
+    } catch {
+      if (!isCurrent()) return;
+      const status = cardEl.querySelector('.kitchen-status');
+      if (status) status.textContent = '暂时无法查询门店状态，将自动重试；请勿重复下单。';
+      setPrimary('状态连接中，正在重试…', null, true);
+    } finally {
+      pollInFlight = false;
+    }
+  };
+  pollTimer = setInterval(poll, 1000);
+  poll();
 }
 
 function showPlate() {
+  if (!order || order.status !== 'ready') return;
+  clearInterval(pollTimer);
+  clearTimeout(plateTimer);
+  pollTimer = plateTimer = null;
   setState('ready');
   dispatchGame('scene:status', { status: 'ready', order });
   const noLabel = order.pickupIsOrderTail ? '订单号' : '号码牌';
-  $('#plate-no').textContent = `No.${order.pickupNo}`;
+  $('#plate-no').textContent = `No.${order.pickupNo ?? '待确认'}`;
   plateEl.classList.remove('hidden');
-  setTimeout(() => plateEl.classList.add('hidden'), 6000);
-  const payHint = order.payUrl ? '，支付后门店开始制作' : '';
-  say(`🔔 ${noLabel} <b style="color:#c1271b">No.${order.pickupNo}</b><br><small>${order.store?.name || ''} · 拿上${noLabel}去门店取餐${payHint}，吃完回来评价～</small>`);
+  const version = flowVersion;
+  plateTimer = setTimeout(() => {
+    plateTimer = null;
+    if (version === flowVersion) plateEl.classList.add('hidden');
+  }, 6000);
+  say(`${noLabel} <b style="color:#c1271b">No.${escapeHtml(order.pickupNo ?? '待确认')}</b><br><small>${escapeHtml(order.store?.name)} · 门店已确认可取餐，拿上${noLabel}去门店，吃完回来评价～</small>`);
   setCard(null);
   setOptions([]);
   setPrimary('我取到餐了 →', () => renderReview());
 }
 
 function renderReview() {
+  const version = ++flowVersion;
+  clearInterval(pollTimer);
+  clearTimeout(plateTimer);
+  pollTimer = plateTimer = null;
+  plateEl.classList.add('hidden');
   setState('review');
   dispatchGame('scene:status', { status: 'dining', order });
   say('这顿打几分？');
   setCard(null);
-  setOptions([1, 2, 3, 4, 5].map((n) => ({
-    label: '⭐'.repeat(n), tone: 'yellow',
-    act: async () => {
+  let submitting = false;
+  const submit = async (n) => {
+    if (submitting || version !== flowVersion || window.gameState !== 'review') return;
+    submitting = true;
+    setOptions([]);
+    say(`正在提交 ${starsLabel(n)} 评价…`);
+    setPrimary('提交中…', null, true);
+    try {
       await api.post('/api/reviews', { stars: n, tag: profile.goal || profile.preset, text: `${profile.people}人·${profile.goal || profile.preset}`, pickupNo: order?.pickupNo || '' });
-      renderWall();
-    },
+      if (version !== flowVersion) return;
+      renderWall(true);
+    } catch {
+      if (version !== flowVersion) return;
+      submitting = false;
+      say('暂时无法确认评价是否提交。<br><small>可以重试，或先看看大家的评价。</small>');
+      setOptions([{ label: `重试 ${starsLabel(n)}`, tone: 'yellow', act: () => submit(n) }], 1);
+      setPrimary('先看评价 →', () => renderWall(false));
+    }
+  };
+  setOptions([1, 2, 3, 4, 5].map((n) => ({
+    label: starsLabel(n), tone: 'yellow', act: () => submit(n),
   })), 5);
-  setPrimary('跳过评价 →', () => renderWall());
+  setPrimary('跳过评价 →', () => renderWall(false));
 }
 
-async function renderWall() {
+async function renderWall(submitted = false) {
+  const version = ++flowVersion;
+  clearInterval(pollTimer);
+  clearTimeout(plateTimer);
+  pollTimer = plateTimer = null;
+  plateEl.classList.add('hidden');
   setState('wall');
-  say('谢谢麦门信徒！<br>你的评价上墙了');
+  setOptions([]);
+  setCard(null);
+  say(submitted ? '谢谢麦门信徒！<br>评价已提交，正在加载评价墙…' : '来看看大家怎么说。<br><small>正在加载评价墙…</small>');
+  setPrimary('加载评价中…', null, true);
   try {
     const list = await api.get('/api/reviews');
-    setCard(list.slice(0, 6).map((r) => `<div class="c-row"><span>${'⭐'.repeat(r.stars)}</span><span class="c-reason">${r.tag || ''} ${r.text || ''}</span></div>`).join('') || '<div class="c-reason">还没有人评价，你是最早的麦门信徒</div>');
-  } catch { setCard(null); }
-  setOptions([]);
-  setPrimary('再来一单 →', () => {
-    profile.avoid = []; profile.goal = ''; profile.perPerson = 0; profile.preset = '';
-    setWallet(888);
-    renderTitle();
-  });
+    if (version !== flowVersion) return;
+    if (!Array.isArray(list)) throw new Error('评价数据无效');
+    say(submitted ? '谢谢麦门信徒！<br>你的评价已提交' : '来看看大家怎么说。');
+    setCard(list.slice(0, 6).map((r) => `<div class="c-row"><span>${starsLabel(r.stars)}</span><span class="c-reason">${escapeHtml(r.tag)} ${escapeHtml(r.text)}</span></div>`).join('') || '<div class="c-reason">还没有人评价，你是最早的麦门信徒</div>');
+  } catch {
+    if (version !== flowVersion) return;
+    say(submitted ? '评价已提交，但评价墙暂时没加载出来。' : '评价墙暂时没加载出来。');
+    setOptions([{ label: '重试加载', tone: 'blue', act: () => renderWall(submitted) }], 1);
+  }
+  if (version !== flowVersion) return;
+  setPrimary('再来一单 →', renderTitle);
 }
 
 // ---------- 启动 ----------

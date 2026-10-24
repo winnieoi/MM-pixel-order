@@ -2,60 +2,52 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>麦门星球 · AI 点单小游戏</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#071b38">
+<title>麦门星球 · 像素点餐</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 星空背景（桌面端手机壳外可见） -->
-  <div id="sky" class="stars"></div>
-
-  <!-- 手机机身 -->
-  <div id="phone" class="stars">
-    <div id="island"></div>
-    <div id="statusbar">
-      <span>9:41</span>
-      <span class="sb-right"><i class="sig"></i><i class="wifi"></i><i class="bat"></i></span>
-    </div>
-
-    <div id="app">
-      <!-- 顶部 HUD -->
+  <main id="app" data-state="title" aria-label="麦门星球点餐小游戏">
+    <section id="scene-wrap" aria-label="像素餐厅静态场景">
+      <img id="scene" src="assets/reference/restaurant.png" width="716" height="920" alt="麦门星球餐厅：招牌、菜单、后厨店员和正在用餐的客人" fetchpriority="high">
+      <canvas id="scene-motion" width="716" height="920" aria-hidden="true"></canvas>
       <div id="hud">
-        <div class="coin"><span class="c-ico">¥</span><b id="coins">888</b></div>
-        <div class="welcome"><span class="mini-avatar" id="mini-avatar"></span><span>欢迎光临!</span></div>
+        <span id="coins" data-initial="true" role="status" aria-label="游戏金币">888</span>
       </div>
-
-      <!-- 场景：像素门店 -->
-      <div id="scene-wrap">
-        <canvas id="scene" width="240" height="280"></canvas>
-        <!-- 招牌（DOM 层，文字更锐） -->
-        <div id="plaque"><span class="arch">M</span><span class="pt">麦门星球</span></div>
-        <!-- 取餐号高光时刻 -->
-        <div id="plate" class="hidden">
-          <div class="plate-store" id="plate-store">麦门星球示例餐厅</div>
-          <div class="plate-no" id="plate-no">No.888</div>
-          <div class="plate-hint">凭这个号去门店取餐 ↑</div>
-        </div>
-        <span id="mode-tag">demo</span>
+      <div id="customer-dialogue">
+        <span id="customer-dialogue-status" class="sr-only" role="status">点击餐厅里的小人，他们会说话</span>
+        <button type="button" class="customer-hotspot" id="hotspot-blue" data-guest="blue" aria-label="和左侧蓝衣顾客聊天"></button>
+        <button type="button" class="customer-hotspot" id="hotspot-front" data-guest="front" aria-label="和正面顾客聊天"></button>
+        <button type="button" class="customer-bubble hidden" id="bubble-blue" data-guest="blue">
+          <span class="line">我也觉得！</span><span class="sr-only">，点击换一句</span>
+        </button>
+        <button type="button" class="customer-bubble hidden" id="bubble-front" data-guest="front">
+          <span class="line">这个新品夯爆了！</span><span class="sr-only">，点击换一句</span>
+        </button>
       </div>
-
-      <!-- 底部：对话 + 选项 + 主按钮 -->
-      <div id="panel">
-        <div id="dialog">
-          <div class="avatar" id="avatar"></div>
-          <div class="bubble"><span class="tag">小麦</span><span id="speech">今天想吃什么？</span></div>
-        </div>
-        <div id="card" class="hidden"></div>
-        <div id="options"></div>
-        <div id="actionbar">
-          <div class="action-icon fries"><span>🍟</span><b>+</b></div>
-          <button id="primary"><span id="primary-label">开始点餐 →</span></button>
-          <div class="action-icon bag"><span>▣</span><b id="bag-count">0</b></div>
-        </div>
+      <span id="scene-status" class="sr-only" role="status"></span>
+      <span id="mode-tag" class="hidden">demo</span>
+      <div id="plate" class="hidden" role="status" aria-live="polite">
+        <div class="plate-store" id="plate-store">麦门星球示例餐厅</div>
+        <div class="plate-no" id="plate-no">No.888</div>
+        <div class="plate-hint">凭这个号去门店取餐 ↑</div>
       </div>
-    </div>
-  </div>
-
+    </section>
+    <section id="panel" aria-label="点餐操作">
+      <div id="dialog">
+        <span class="sr-only">小麦：</span>
+        <div class="bubble"><span id="speech" aria-live="polite">今天想吃点什么？</span></div>
+      </div>
+      <div id="card" class="hidden"></div>
+      <div id="options"></div>
+      <div id="actionbar">
+        <span class="action-icon fries" aria-hidden="true"></span>
+        <button id="primary" type="button"><span id="primary-label">开始点餐 →</span></button>
+        <span class="action-icon bag" aria-label="当前餐品数量"><b id="bag-count" role="status">0</b></span>
+      </div>
+    </section>
+  </main>
   <script src="scene.js"></script>
   <script src="game.js"></script>
 </body>
