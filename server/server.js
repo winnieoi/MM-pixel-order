@@ -69,9 +69,15 @@ const server = http.createServer(async (req, res) => {
   const route = `${req.method} ${url.pathname}`;
 
   try {
-    if (route === 'GET /api/health') return send(res, 200, { ok: true, mcpMode: mcp.MODE, now: Date.now() });
+    if (route === 'GET /api/health') return send(res, 200, { ok: true, mcpMode: mcp.MODE, mcpLive: mcp.isLive(), now: Date.now() });
 
     if (route === 'GET /api/menu') return send(res, 200, await mcp.getMenu());
+
+    // live 排障用：当前解析到的门店
+    if (route === 'GET /api/store') {
+      try { return send(res, 200, await mcp.resolveStore()); }
+      catch (e) { return send(res, 200, { error: e.message }); }
+    }
 
     if (route === 'POST /api/recommend') {
       const body = await readBody(req);

@@ -219,6 +219,7 @@ function startKitchen() {
   setCard(`
     <div class="c-hdr"><span>${order.store?.name || ''}</span><span>单号 ${order.orderId}</span></div>
     <div class="c-row"><span>共 ${currentPlan.items.reduce((s, i) => s + i.qty, 0)} 件 · ¥${order.total}</span><span>预计 ${order.etaMinutes} 分钟</span></div>
+    ${order.payUrl ? `<div class="c-reason">💳 真实订单待支付：<a href="${order.payUrl}" target="_blank" rel="noopener">点此支付</a>${order.mcpStatus ? `（当前：${order.mcpStatus}）` : ''}</div>` : ''}
     <div class="bar"><i style="width:4%"></i></div>
     <div class="c-reason">店员备餐画面在上面实时直播中…</div>
   `);
@@ -238,10 +239,12 @@ function startKitchen() {
 function showPlate() {
   setState('ready');
   dispatchGame('scene:status', { status: 'ready', order });
+  const noLabel = order.pickupIsOrderTail ? '订单号' : '号码牌';
   $('#plate-no').textContent = `No.${order.pickupNo}`;
   plateEl.classList.remove('hidden');
   setTimeout(() => plateEl.classList.add('hidden'), 6000);
-  say(`🔔 号码牌 <b style="color:#c1271b">No.${order.pickupNo}</b><br><small>${order.store?.name || ''} · 拿上号码牌去门店取餐，吃完回来评价～</small>`);
+  const payHint = order.payUrl ? '，支付后门店开始制作' : '';
+  say(`🔔 ${noLabel} <b style="color:#c1271b">No.${order.pickupNo}</b><br><small>${order.store?.name || ''} · 拿上${noLabel}去门店取餐${payHint}，吃完回来评价～</small>`);
   setCard(null);
   setOptions([]);
   setPrimary('我取到餐了 →', () => renderReview());

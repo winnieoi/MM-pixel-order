@@ -2,20 +2,22 @@
 // 输入：{ people, goal, budget, avoid[] }  输出：3 个方案（主推/省钱/丰盛）
 
 function score(item, goal) {
+  const k = item.kcal || 0;                       // live 菜单可能没有热量，按 0 参与打分
+  const tags = item.tags || [];
   switch (goal) {
-    case '减脂':   return 1000 - item.kcal / 2 + (item.cat === 'salad' ? 300 : 0) + (item.cat === 'drink' && item.kcal <= 100 ? 150 : 0);
-    case '放纵':   return item.kcal / 3 + (item.cat === 'burger' ? 200 : 0) + (item.cat === 'snack' ? 60 : 0);
-    case '尝新':   return (item.isNew ? 500 : 0) + item.kcal / 10;
-    case '下午茶': return (item.cat === 'snack' ? 300 : 0) + (item.cat === 'drink' ? 250 : 0) + (item.kcal > 400 ? -300 : 0);
-    case '带娃':   return (item.tags.includes('鸡肉') ? 150 : 0) + (item.cat === 'snack' && item.kcal < 350 ? 150 : 0) - (item.tags.includes('辣') ? 999 : 0);
-    default:       return item.kcal / 10;
+    case '减脂':   return 1000 - k / 2 + (item.cat === 'salad' ? 300 : 0) + (item.cat === 'drink' && k > 0 && k <= 100 ? 150 : 0);
+    case '放纵':   return k / 3 + (item.cat === 'burger' ? 200 : 0) + (item.cat === 'snack' ? 60 : 0);
+    case '尝新':   return (item.isNew ? 500 : 0) + k / 10;
+    case '下午茶': return (item.cat === 'snack' ? 300 : 0) + (item.cat === 'drink' ? 250 : 0) + (k > 400 ? -300 : 0);
+    case '带娃':   return (tags.includes('鸡肉') ? 150 : 0) + (item.cat === 'snack' && k < 350 ? 150 : 0) - (tags.includes('辣') ? 999 : 0);
+    default:       return k / 10;
   }
 }
 
 function pick(menu, goal, avoid, perItemBudget) {
   const bad = new Set(avoid || []);
   return menu
-    .filter((m) => !m.tags.some((t) => bad.has(t)) && m.price <= perItemBudget)
+    .filter((m) => !(m.tags || []).some((t) => bad.has(t)) && m.price <= perItemBudget)
     .sort((a, b) => score(b, goal) - score(a, goal));
 }
 
@@ -52,20 +54,22 @@ function assemble(menu, n, goal, budget, avoid, style) {
   const hasCombo = plan.some((i) => i.cat === 'burger') && plan.some((i) => i.id.startsWith('fries')) && plan.some((i) => i.cat === 'drink');
   const discount = hasCombo ? 6 : 0;
   total = Math.round((total - discount) * 10) / 10;
-  const kcal = plan.reduce((s, i) => s + i.kcal * i.qty, 0);
+  const kcal = plan.reduce((s, i) => s + (i.kcal || 0) * i.qty, 0);
+  const kcalKnown = plan.some((i) => i.kcal != null);
 
   if (budget && total > budget) return null;
 
   const top = plan.filter((i) => i.cat === 'burger' || i.cat === 'salad')[0] || plan[0];
+  const kcalLine = kcalKnown ? `人均约 ${Math.round(kcal / n)} kcal` : '热量以门店公示为准';
   const reason = {
-    '减脂': `主推${top.name}（${top.kcal} kcal），搭配零卡/低卡饮品，整单人均约 ${Math.round(kcal / n)} kcal，比巨无霸套餐少约 ${Math.max(0, 545 + 330 + 180 - Math.round(kcal / n))} kcal`,
-    '放纵': `以${top.name}（${top.kcal} kcal）打底，配足小食，人均约 ${Math.round(kcal / n)} kcal，今天不设限`,
+    '减脂': `主推${top.name}${kcalKnown ? `（${top.kcal} kcal）` : ''}，搭配低卡饮品，${kcalLine}`,
+    '放纵': `以${top.name}${kcalKnown ? `（${top.kcal} kcal）` : ''}打底，配足小食，${kcalLine}，今天不设限`,
     '尝新': `${plan.filter((i) => i.isNew).map((i) => i.name).join('、') || top.name} 是当季新品，先替你试过毒`,
-    '下午茶': `小食 + 咖啡的轻组合，人均 ${Math.round(kcal / n)} kcal，扛住下午不犯困`,
-    '带娃': `避开辣味，${top.name} + 小食 + 牛奶，小朋友能吃全`,
+    '下午茶': `小食 + 饮品轻组合，${kcalLine}，扛住下午不犯困`,
+    '带娃': `避开辣味，${top.name} + 小食 + 饮品，小朋友能吃全`,
   }[goal] || `按你的口味和预算凑的，人均 ¥${Math.round(total / n)}`;
 
-  return { items: plan, total, discount, kcal, perPerson: Math.round((total / n) * 10) / 10, kcalPerPerson: Math.round(kcal / n), reason };
+  return { items: plan, total, discount, kcal: kcalKnown ? kcal : null, perPerson: Math.round((total / n) * 10) / 10, kcalPerPerson: kcalKnown ? Math.round(kcal / n) : null, reason };
 }
 
 function recommend(menu, { people = 1, goal = '放纵', budget = 0, avoid = [] } = {}) {
