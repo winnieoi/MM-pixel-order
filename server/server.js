@@ -52,7 +52,9 @@ function readBody(req) {
   });
 }
 function serveStatic(res, urlPath) {
-  let p = urlPath === '/' ? '/index.html' : urlPath;
+  let p = urlPath;
+  if (urlPath === '/') p = '/cover.html';          // 封面页
+  else if (urlPath === '/game') p = '/index.html'; // 游戏入口
   const file = path.join(WEB, path.normalize(p).replace(/^(\.\.[/\\])+/, ''));
   if (!file.startsWith(WEB)) return send(res, 403, { error: 'forbidden' });
   fs.readFile(file, (err, buf) => {

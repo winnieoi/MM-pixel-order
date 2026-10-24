@@ -2,3 +2,4 @@ node_modules/
 .DS_Store
 server/data_reviews.json
 .env.mcp
+site/

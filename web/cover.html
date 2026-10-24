@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>麦门星球 · 像素麦当劳点餐助理</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    font-family:"PingFang SC","Microsoft YaHei",monospace;
+    background:
+      radial-gradient(ellipse 80% 55% at 18% 8%, rgba(64,110,190,.38), transparent 60%),
+      radial-gradient(ellipse 65% 50% at 85% 82%, rgba(120,70,170,.30), transparent 60%),
+      linear-gradient(168deg, #0b1e42 0%, #122a52 42%, #0a1830 78%, #071224 100%);
+    color:#f4ecd8; min-height:100vh; overflow-x:hidden;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  /* ---------- 像素星空 ---------- */
+  .stars, .stars2 { position:fixed; inset:0; pointer-events:none; z-index:0; }
+  .stars {
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, #fff 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 28% 62%, #cfe4ff 50%, transparent 51%),
+      radial-gradient(1px 1px at 47% 12%, #fff 50%, transparent 51%),
+      radial-gradient(2px 2px at 63% 78%, #ffe9b0 50%, transparent 51%),
+      radial-gradient(1px 1px at 78% 26%, #fff 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 88% 55%, #b8d4ff 50%, transparent 51%),
+      radial-gradient(1px 1px at 8% 84%, #fff 50%, transparent 51%),
+      radial-gradient(1px 1px at 55% 42%, #dcecff 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 36% 90%, #fff 50%, transparent 51%),
+      radial-gradient(1px 1px at 93% 8%, #ffe9b0 50%, transparent 51%);
+    background-size: 340px 340px; opacity:.85;
+    animation: twinkle 4.2s steps(2) infinite;
+  }
+  .stars2 {
+    background-image:
+      radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.55) 50%, transparent 51%),
+      radial-gradient(2px 2px at 70% 15%, rgba(180,215,255,.5) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 45% 70%, rgba(255,233,176,.5) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 90% 60%, rgba(255,255,255,.4) 50%, transparent 51%);
+    background-size: 520px 520px;
+    animation: twinkle 6s steps(2) infinite reverse;
+  }
+  @keyframes twinkle { 50% { opacity:.35; } }
+  .planet {
+    position:fixed; border-radius:50%; pointer-events:none; z-index:0;
+    box-shadow: inset -6px -8px 0 rgba(0,0,20,.35), 0 0 34px rgba(90,150,255,.28);
+  }
+  .planet.p1 { width:120px; height:120px; right:6%; top:9%;
+    background: linear-gradient(150deg,#6f9fe8,#3d63b4 55%,#2c4a8c); opacity:.75; }
+  .planet.p2 { width:64px; height:64px; left:4%; bottom:14%;
+    background: linear-gradient(150deg,#e8a06f,#b45a3d 55%,#8c3f2c); opacity:.6; }
+  .meteor {
+    position:fixed; width:3px; height:3px; background:#fff; border-radius:50%;
+    top:14%; left:-10px; z-index:0; opacity:0;
+    box-shadow: 0 0 8px #fff;
+    animation: meteor 9s linear infinite;
+  }
+  .meteor::after { content:""; position:absolute; right:2px; top:1px; width:90px; height:2px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.75)); }
+  .meteor.m2 { top:44%; animation-delay:4.5s; animation-duration:11s; }
+  @keyframes meteor { 0%,70% { opacity:0; transform:translate(0,0); } 72% { opacity:1; } 100% { opacity:0; transform:translate(70vw,38vh); } }
+
+  /* ---------- 主体 ---------- */
+  .wrap {
+    position:relative; z-index:1; width:min(1060px,94vw);
+    display:flex; align-items:center; gap:48px;
+    padding:44px 0 28px; flex:1;
+  }
+  .left { flex:1.15; min-width:0; }
+  .badge-row { display:flex; align-items:center; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  .badge {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; padding:5px 11px; letter-spacing:.5px;
+    border:2px solid #f2c35f; color:#ffd97a; background:rgba(30,52,96,.72);
+    box-shadow:3px 3px 0 rgba(8,16,36,.6);
+  }
+  .badge.demo { border-color:#7fb2ff; color:#bcd8ff; }
+  h1 {
+    font-size:clamp(44px,6.4vw,72px); line-height:1.04; letter-spacing:2px;
+    color:#ffd94a; margin-bottom:6px;
+    text-shadow:
+      3px 0 0 #a4160f, -3px 0 0 #a4160f, 0 3px 0 #a4160f, 0 -3px 0 #a4160f,
+      3px 3px 0 #a4160f, -3px 3px 0 #a4160f, 3px -3px 0 #a4160f, -3px -3px 0 #a4160f,
+      0 9px 0 rgba(10,20,44,.55);
+  }
+  .subtitle { font-size:clamp(15px,2vw,19px); color:#cfe0ff; margin-bottom:10px; letter-spacing:1px; }
+  .subtitle b { color:#ffd94a; }
+  .desc { font-size:14px; line-height:1.85; color:#9fb6d8; margin-bottom:26px; max-width:520px; }
+  .feats { display:flex; flex-direction:column; gap:10px; margin-bottom:32px; }
+  .feat {
+    display:flex; align-items:center; gap:12px; font-size:14px; color:#e8eefc;
+    background:rgba(20,38,74,.66); border:2px solid #33507f; padding:10px 14px;
+    box-shadow:4px 4px 0 rgba(8,16,36,.5); max-width:480px;
+  }
+  .feat .ic { font-size:20px; filter:drop-shadow(2px 2px 0 rgba(0,0,20,.4)); }
+  .feat b { color:#ffd97a; margin-right:4px; }
+  .feat small { color:#8fa8cc; }
+  .cta { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .btn {
+    display:inline-flex; align-items:center; gap:10px; cursor:pointer; text-decoration:none;
+    font-family:inherit; font-size:19px; letter-spacing:2px; padding:15px 34px;
+    border:4px solid #122843; outline:2px solid #5479a0; color:#b12e1e; font-weight:700;
+    background:linear-gradient(#ffec92 0 12%,#ffd354 12% 80%,#e8a42a 80%);
+    box-shadow:0 5px 0 #07172e, 0 8px 14px rgba(3,8,24,.5);
+    transition:transform .06s, box-shadow .06s;
+  }
+  .btn:hover { filter:brightness(1.06); }
+  .btn:active { transform:translateY(4px); box-shadow:0 1px 0 #07172e; }
+  .btn.ghost {
+    color:#cfe0ff; background:rgba(24,44,84,.8); border-color:#3a5c92; outline-color:#5275a1;
+    font-size:15px; padding:13px 24px; font-weight:400;
+  }
+  /* ---------- 右侧手机 ---------- */
+  .right { flex:0 0 auto; display:flex; justify-content:center; }
+  .phone {
+    width:min(300px,72vw); border:8px solid #101828; border-radius:44px;
+    background:#000; padding:10px 8px 14px; position:relative;
+    box-shadow:
+      0 0 0 2px #5c6b84, 0 0 0 5px #060b18,
+      0 26px 60px rgba(2,6,18,.75), 0 0 90px rgba(80,130,220,.22);
+    animation: float 5.5s ease-in-out infinite;
+  }
+  @keyframes float { 50% { transform:translateY(-12px); } }
+  .island {
+    position:absolute; top:18px; left:50%; transform:translateX(-50%);
+    width:34%; height:22px; background:#0a0f1c; border-radius:12px; z-index:3;
+  }
+  .screen { border-radius:34px; overflow:hidden; position:relative; background:#122a52; }
+  .screen img { display:block; width:100%; }
+  .gesture {
+    position:absolute; bottom:5px; left:50%; transform:translateX(-50%);
+    width:36%; height:4px; border-radius:2px; background:rgba(255,255,255,.5);
+  }
+  .caption {
+    text-align:center; font-size:12px; color:#8fa8cc; margin-top:14px; letter-spacing:1px;
+  }
+  .caption b { color:#ffd97a; }
+  /* ---------- 页脚 ---------- */
+  footer {
+    position:relative; z-index:1; width:min(1060px,94vw);
+    border-top:2px solid rgba(82,117,161,.35); padding:16px 0 22px;
+    display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;
+    font-size:12px; color:#7189ad; letter-spacing:.5px;
+  }
+  footer .mcd { color:#ffd97a; }
+  @media (max-width:880px) {
+    .wrap { flex-direction:column; gap:30px; padding:30px 0 20px; text-align:center; }
+    .feat { max-width:none; }
+    .cta { justify-content:center; }
+    .desc { max-width:none; }
+    .badge-row { justify-content:center; }
+    .planet.p1 { width:80px; height:80px; }
+  }
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div class="stars2"></div>
+<div class="planet p1"></div>
+<div class="planet p2"></div>
+<div class="meteor"></div>
+<div class="meteor m2"></div>
+
+<div class="wrap">
+  <div class="left">
+    <div class="badge-row">
+      <span class="badge">🏆 1024 超能 Coding 周末 · 用餐赛道</span>
+      <span class="badge demo">🍔 麦当劳 MCP 开发者创新大赛</span>
+    </div>
+    <h1>麦门星球</h1>
+    <p class="subtitle">像素风麦当劳点餐助理 · <b>AI 店员「小麦」</b>在线接单</p>
+    <p class="desc">
+      跟 AI 店员聊两句——几个人、想省钱还是想放纵，它用<b style="color:#ffd97a">真实菜单数据</b>替你配好最划算的一单；
+      下单后走进像素门店，看着店员备菜、打包，直到取餐屏亮起你的<b style="color:#ffd97a">真实号码牌</b>。
+    </p>
+    <div class="feats">
+      <div class="feat"><span class="ic">🤖</span><span><b>AI 问答配餐</b><small>人数 / 目标 / 忌口 / 预算 → 三套方案，价格热量有依据</small></span></div>
+      <div class="feat"><span class="ic">🎫</span><span><b>真实取餐号</b><small>接麦当劳 MCP，门店真实菜单、真实下单、真实订单号</small></span></div>
+      <div class="feat"><span class="ic">🏪</span><span><b>像素门店直播备餐</b><small>员工小人按订单状态开工，出餐那一刻号码牌高亮</small></span></div>
+    </div>
+    <div class="cta">
+      <a class="btn" href="/game">🍟 进入门店 · 开始点餐 →</a>
+      <a class="btn ghost" href="https://github.com/winnieoi/MM-pixel-order" target="_blank" rel="noopener">⭐ GitHub 仓库</a>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <img src="assets/screens/04-plate.png" alt="麦门星球游戏画面：出餐号码牌">
+        <div class="gesture"></div>
+      </div>
+    </div>
+    <div class="caption" style="width:100%">店内实况 · <b>「出餐啦，凭号码牌取餐」</b></div>
+  </div>
+</div>
+
+<footer>
+  <span>🌌 麦门星球 MCD PLANET · 星露谷风像素 RPG 点餐体验</span>
+  <span class="mcd">Powered by 麦当劳 MCP · WorkBuddy 开发</span>
+</footer>
+</body>
+</html>
