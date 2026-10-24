@@ -87,8 +87,12 @@ async function callTool(name, args) {
   const result = await rpc('tools/call', { name, arguments: args || {} });
   const text = (result?.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('\n');
   if (result?.isError) throw new Error(`MCP ${name} 工具报错: ${text.slice(0, 200)}`);
-  let parsed = null;
-  try { parsed = JSON.parse(text); } catch { /* 有些工具返回 Markdown/TOON 文本 */ }
+  // 官方服务把机器可读结果放在 structuredContent，同时在 text 中附带展示说明。
+  // 优先 structuredContent，避免 text 前后的 Markdown 说明导致 JSON.parse 失败。
+  let parsed = result?.structuredContent || null;
+  if (!parsed) {
+    try { parsed = JSON.parse(text); } catch { /* 有些工具返回 Markdown/TOON 文本 */ }
+  }
   return { data: parsed, text };
 }
 
@@ -100,8 +104,8 @@ async function resolveStore() {
     cachedStore = { storeCode: process.env.MCD_STORE_CODE, storeName: process.env.MCD_STORE_NAME || '指定门店', beCode: process.env.MCD_BE_CODE || '' };
     return cachedStore;
   }
-  // 1) 收藏餐厅
-  try {
+  // 1) 收藏餐厅（只有用户没有指定城市/关键词时才优先，避免误选其它城市）
+  if (!process.env.MCD_CITY && !process.env.MCD_KEYWORD && !process.env.MCD_STORE_NAME) try {
     const { data } = await callTool('query-nearby-stores', { searchType: 1, beType: 1 });
     const list = data?.data || data;
     if (Array.isArray(list) && list.length) {
@@ -112,10 +116,15 @@ async function resolveStore() {
   // 2) 按城市关键词搜
   const city = process.env.MCD_CITY || '深圳市';
   try {
-    const { data } = await callTool('query-nearby-stores', { searchType: 2, beType: 1, city, keyword: process.env.MCD_KEYWORD || '麦当劳' });
+    const keyword = process.env.MCD_KEYWORD || '麦当劳';
+    const { data } = await callTool('query-nearby-stores', { searchType: 2, beType: 1, city, keyword });
     const list = data?.data || data;
     if (Array.isArray(list) && list.length) {
-      cachedStore = { storeCode: String(list[0].storeCode), storeName: list[0].storeName || `${city}门店`, beCode: list[0].beCode || '' };
+      const wanted = process.env.MCD_STORE_NAME || keyword;
+      const matches = list.filter((s) => `${s.storeName || ''}${s.address || ''}`.includes(wanted));
+      if (matches.length !== 1) throw new Error('门店不唯一，请确认具体门店并设置 MCD_STORE_CODE');
+      const hit = matches[0];
+      cachedStore = { storeCode: String(hit.storeCode), storeName: hit.storeName || `${city}门店`, beCode: hit.beCode || '' };
       return cachedStore;
     }
   } catch (e) { console.warn('[mcp] 城市门店查询失败：', e.message); }
@@ -126,7 +135,7 @@ async function resolveStore() {
 function classify(name, category) {
   const s = `${category || ''}${name || ''}`;
   if (/沙拉|蔬|碗/.test(s)) return 'salad';
-  if (/可乐|咖啡|柠檬|茶|饮料|果汁|水|奶|雪冰|摇摇/.test(s)) return 'drink';
+  if (/可乐|咖啡|柠檬|茶|饮料|饮品|果汁|水|奶|雪冰|摇摇/.test(s)) return 'drink';
   if (/汉堡|堡|牛堡|鸡腿|安格斯|鱼肉|猪排/.test(s)) return 'burger';
   return 'snack';
 }
