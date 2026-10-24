@@ -147,7 +147,7 @@ body {
 }
 
 /* 对话框 */
-#dialog { display: flex; align-items: stretch; gap: 10px; }
+#dialog { display: flex; align-items: stretch; gap: 0; border:4px solid #0a1d45; outline:2px solid #2689c9; background:#fff2cb; box-shadow:inset 0 3px 0 #ffe18a,0 4px 0 #050e23; padding:6px; }
 .avatar {
   flex: none; width: 62px; height: 62px; border-radius: 50%;
   border: 4px solid #16233f; background: #ffe9c9; overflow: hidden;
@@ -221,19 +221,33 @@ body {
   cursor: pointer;
 }
 /* Reference-driven presentation: metallic phone, RPG frames, compact single screen. */
-#phone { width:min(430px,94vw); height:94dvh; max-height:900px; border:7px solid #121826; border-radius:38px; box-shadow:0 0 0 2px #667184,0 0 0 5px #050919,18px 24px 70px #020510; padding-bottom:18px; }
+#phone { width:min(430px,94vw); height:96dvh; max-height:940px; border:7px solid #121826; border-radius:38px; box-shadow:0 0 0 2px #667184,0 0 0 5px #050919,18px 24px 70px #020510; padding-bottom:18px; }
 #phone::after { content:''; position:absolute; bottom:6px; left:35%; width:30%; height:4px; border-radius:8px; background:#d9deeb; }
 #island { position:absolute; top:6px; left:36%; width:28%; height:19px; border-radius:20px; background:#03050a; z-index:20; }
 #statusbar { padding:9px 20px 7px; font-size:11px; }
-#hud { position:relative; top:0; padding:5px 8px; height:42px; flex:none; background:#18365c; border-block:3px solid #5275a1; }
+#hud { position:absolute; top:0; left:0; right:0; padding:12px 6px; height:76px; flex:none; background:linear-gradient(#173a6e 0 11%,#4a6294 11% 15%,#0c244e 15% 21%,#1d3b64 21% 65%,#5f4450 65%); border-block:3px solid #5275a1; z-index:8; align-items:flex-start; }
+#hud .coin { color:#fff; background:#062d58; border-color:#71c5ee; box-shadow:0 0 0 3px #082042,3px 4px 0 #071227; }
+#hud .welcome { color:#121b2b; background:#fff6d3; border-color:#182848; border-radius:0; box-shadow:3px 3px 0 #080f1e; font-size:10px; }
 .coin,.welcome { font-size:12px; border-radius:4px; border-width:2px; }
-#plaque { top:5px; padding:5px 17px; border:3px solid #622c26; border-radius:3px; background:linear-gradient(#e86142,#ae251f); box-shadow:0 3px 0 #f2c35f,3px 6px 0 #1c2139; }
+#plaque { top:41px; padding:6px 20px 8px; border:4px solid #10224b; border-radius:3px; background:linear-gradient(#ef5440,#c52725); box-shadow:0 0 0 3px #3b98d1,0 4px 0 #f3bd42,4px 8px 0 #111b38; }
+#plaque::before,#plaque::after { content:'✦'; position:absolute; color:#ffd94d; font-size:15px; top:15px; }
+#plaque::before { left:-19px; } #plaque::after { right:-19px; }
+#plaque .arch { width:30px; height:42px; border:0; border-radius:0; background:transparent; font-size:42px; line-height:42px; color:#ffd93e; text-shadow:3px 3px 0 #9a1f1e; }
+#plaque .pt { font-size:25px; letter-spacing:2px; text-shadow:2px 2px 0 #8c191a; }
 #plaque .pt { font-size:20px; letter-spacing:3px; color:#ffe7a4; }
-#scene-wrap { border-inline:5px solid #213c62; background:#e6c48a; }
+#scene-wrap { border-inline:5px solid #213c62; background:#e6c48a; padding-top:24px; }
+#scene-wrap::before { content:'✦'; position:absolute; left:12px; top:115px; z-index:5; color:#ffd447; font-size:22px; text-shadow:18px 17px 0 #fff1a5,205px 30px 0 #ffd447; }
+#scene-wrap::after { content:'✦'; position:absolute; right:11px; top:132px; z-index:5; color:#fff2a8; font-size:16px; text-shadow:-18px 56px 0 #ffd447; }
 #scene { object-fit:fill; }
-#panel { background:linear-gradient(#294c79,#12294b); border-top:4px solid #6888ad; gap:9px; padding:12px 9px 10px; max-height:52%; overflow:auto; flex-shrink:0; }
+#panel { background:linear-gradient(#0b2f66,#0b244a); border-top:4px solid #4eb9ef; gap:8px; padding:12px 8px 8px; max-height:48%; overflow:auto; flex-shrink:0; }
+#actionbar { display:grid; grid-template-columns:58px 1fr 58px; gap:6px; align-items:center; padding:5px 4px; background:#0b4a91; border:4px solid #08204b; outline:2px solid #3e98d1; box-shadow:inset 0 3px 0 #74c8ef,0 3px 0 #050e23; }
+#actionbar #primary { width:100%; }
+.action-icon { height:49px; position:relative; display:flex; align-items:center; justify-content:center; border:3px solid #08204b; background:linear-gradient(#49a8dc,#1667ad); box-shadow:inset 0 3px 0 #a6dcf3; color:#ffd34d; }
+.action-icon span { font-size:28px; filter:drop-shadow(2px 2px 0 #82251d); }
+.action-icon b { position:absolute; right:-5px; top:-8px; min-width:19px; height:19px; padding:0 4px; border-radius:12px; background:#e31e24; border:2px solid #fff; color:#fff; font:bold 11px monospace; text-align:center; }
+.action-icon.bag span { color:#ffd34d; font-size:31px; }
 #dialog { gap:0; border:3px solid #0a1933; background:#fff0ca; box-shadow:inset 0 0 0 3px #e9bc63,0 3px 0 #061226; padding:6px; min-height:76px; }
-.avatar { width:58px; height:64px; border-radius:0; border:0; background-color:#f4d99b; box-shadow:none; image-rendering:pixelated; }
+.avatar { width:68px; height:70px; border-radius:0; border:0; background-color:#f4d99b; box-shadow:none; image-rendering:pixelated; }
 .bubble { border:0; border-radius:0; box-shadow:none; background:transparent; padding:17px 8px 6px; font-size:15px; }
 .bubble .tag { top:-3px; left:-57px; border-radius:0; border:2px solid #79531c; font-size:10px; padding:0 8px; }
 #options { gap:7px; }
@@ -243,7 +257,7 @@ body {
 .opt .oi { font-size:18px; }
 .opt .os { font-size:9px; }
 .opt.sel { outline-width:2px; }
-#primary { position:relative; flex:none; height:52px; border-radius:2px; border:4px solid #122843; outline:2px solid #5479a0; color:#b12e1e; background:linear-gradient(#ffec92 0 12%,#ffd354 12% 80%,#e8a42a 80%); box-shadow:0 3px 0 #07172e; font-size:19px; }
+#primary { position:relative; flex:none; height:49px; border-radius:2px; border:4px solid #10264d; outline:2px solid #f4a936; color:#d93422; background:linear-gradient(#fff0a4 0 10%,#ffd247 10% 82%,#e99820 82%); box-shadow:0 3px 0 #07172e; font-size:19px; font-weight:900; text-shadow:1px 1px 0 #fff4a9; }
 #card { border-radius:2px; max-height:110px; flex-shrink:0; font-size:12px; }
 #sky::after { content:''; position:absolute; width:70px; height:70px; left:10%; top:20%; border-radius:50%; background:radial-gradient(circle at 30% 30%,#87bdd5,#254786 60%,#101a44); box-shadow:180px 440px 0 -20px #527599; opacity:.6; }
 @media(max-height:740px) { #panel { gap:6px; padding:9px 7px; } .opt { min-height:50px; } #primary { height:44px; } #dialog { min-height:64px; } .avatar { height:52px; } #plaque .pt { font-size:16px; } }
