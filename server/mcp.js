@@ -231,6 +231,7 @@ function pickAmount(p, keys, fallback) {
 
 async function createOrder(items, storeId) {
   if (MODE !== 'live') return demoOrder(items, storeId);
+  if (process.env.MCD_ALLOW_ORDER !== 'true') throw new Error('真实下单尚未启用：请先确认门店与商品，当前仅开放查询');
   const store = await resolveStore();
   const products = items.map((i) => ({ productCode: String(i.id), quantity: Number(i.qty) || 1 }));
 
