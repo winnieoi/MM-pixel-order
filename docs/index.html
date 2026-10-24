@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>麦门星球 · AI 点单小游戏</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 星空背景（桌面端手机壳外可见） -->
+  <div id="sky" class="stars"></div>
+
+  <!-- 手机机身 -->
+  <div id="phone" class="stars">
+    <div id="island"></div>
+    <div id="statusbar">
+      <span>9:41</span>
+      <span class="sb-right"><i class="sig"></i><i class="wifi"></i><i class="bat"></i></span>
+    </div>
+
+    <div id="app">
+      <!-- 顶部 HUD -->
+      <div id="hud">
+        <div class="coin"><span class="c-ico">¥</span><b id="coins">888</b></div>
+        <div class="welcome"><span class="mini-avatar" id="mini-avatar"></span><span>欢迎光临!</span></div>
+      </div>
+
+      <!-- 场景：像素门店 -->
+      <div id="scene-wrap">
+        <canvas id="scene" width="240" height="280"></canvas>
+        <!-- 招牌（DOM 层，文字更锐） -->
+        <div id="plaque"><span class="arch">M</span><span class="pt">麦门星球</span></div>
+        <!-- 取餐号高光时刻 -->
+        <div id="plate" class="hidden">
+          <div class="plate-store" id="plate-store">麦门星球示例餐厅</div>
+          <div class="plate-no" id="plate-no">No.888</div>
+          <div class="plate-hint">凭这个号去门店取餐 ↑</div>
+        </div>
+        <span id="mode-tag">demo</span>
+      </div>
+
+      <!-- 底部：对话 + 选项 + 主按钮 -->
+      <div id="panel">
+        <div id="dialog">
+          <div class="avatar" id="avatar"></div>
+          <div class="bubble"><span class="tag">小麦</span><span id="speech">今天想吃什么？</span></div>
+        </div>
+        <div id="card" class="hidden"></div>
+        <div id="options"></div>
+        <div id="actionbar">
+          <div class="action-icon fries"><span>🍟</span><b>+</b></div>
+          <button id="primary"><span id="primary-label">开始点餐 →</span></button>
+          <div class="action-icon bag"><span>▣</span><b id="bag-count">0</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="static-api.js"></script>
+  <script src="scene.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
