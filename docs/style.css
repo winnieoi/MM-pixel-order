@@ -11,6 +11,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #fff49b; outline-offs
 #app { position: relative; width: 100%; max-width: 480px; margin: 0 auto; container-type: inline-size; background: var(--navy); }
 #scene-wrap { position: relative; width: 100%; }
 #scene { display: block; width: 100%; height: auto; }
+#scene-motion { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; image-rendering: pixelated; }
 #scene-wrap { overflow: hidden; }
 #hud { position: absolute; inset: 0; pointer-events: none; }
 #coins { position: absolute; left: 11.59%; top: 6.3%; width: 9.08%; height: 4.13%; display: flex; align-items: center; justify-content: center; background: url('assets/reference/coin-blank.png') center / 100% 100%; color: #fff; font-size: 4.1cqw; font-weight: 800; font-variant-numeric: tabular-nums; }
