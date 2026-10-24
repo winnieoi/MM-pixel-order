@@ -16,6 +16,91 @@ button:focus-visible, a:focus-visible { outline: 3px solid #fff49b; outline-offs
 #hud { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 #coins { position: absolute; left: 11.59%; top: 6.3%; width: 9.08%; height: 4.13%; display: flex; align-items: center; justify-content: center; background: url('assets/reference/coin-blank.png') center / 100% 100%; color: #fff; font-size: 4.1cqw; font-weight: 800; font-variant-numeric: tabular-nums; }
 #coins[data-initial="true"] { background: none; color: transparent; }
+/* 背景音乐开关：像素风喇叭按钮，位于场景右上角，不遮挡金币与人物。 */
+#bgm-toggle {
+  position: absolute;
+  right: 2.8%;
+  top: 15%;
+  width: 11.5%;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: 3px solid #0c2446;
+  border-radius: 0;
+  background: var(--cream);
+  box-shadow: 0 0 0 2px #51b7ef, inset 0 -4px 0 #0002, 0 3px 0 #050f24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+#bgm-toggle:active { transform: translateY(1px); box-shadow: 0 0 0 2px #51b7ef, inset 0 -3px 0 #0002, 0 2px 0 #050f24; }
+/* 像素喇叭图标：用 box-shadow 画小方块，静音时加斜杠。 */
+.bgm-icon {
+  position: relative;
+  width: 42%;
+  height: 42%;
+  image-rendering: pixelated;
+}
+.bgm-icon::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 38%;
+  width: 42%; height: 24%;
+  background: #071b38;
+}
+.bgm-icon::after {
+  content: '';
+  position: absolute;
+  left: 26%; top: 30%;
+  width: 34%; height: 40%;
+  background: #071b38;
+  clip-path: polygon(0 0, 100% 18%, 100% 82%, 0 100%);
+}
+/* 声波：三条小竖条，播放时出现并轻微上下跳动。 */
+.bgm-wave {
+  position: absolute;
+  right: 6%;
+  top: 50%;
+  width: 8%;
+  height: 44%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14%;
+}
+.bgm-wave i {
+  display: block;
+  width: 100%;
+  background: #da2b16;
+  animation: none;
+}
+.bgm-wave i:nth-child(1) { height: 26%; }
+.bgm-wave i:nth-child(2) { height: 60%; }
+.bgm-wave i:nth-child(3) { height: 100%; }
+#bgm-toggle.playing .bgm-wave i { animation: bgm-wave 0.6s ease-in-out infinite; }
+#bgm-toggle.playing .bgm-wave i:nth-child(2) { animation-delay: 0.15s; }
+#bgm-toggle.playing .bgm-wave i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bgm-wave {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+/* 静音斜杠（未播放时显示）。 */
+.bgm-mute {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.bgm-mute::before {
+  content: '';
+  position: absolute;
+  left: 12%; top: 44%;
+  width: 76%; height: 12%;
+  background: #da2b16;
+  transform: rotate(-45deg);
+}
+#bgm-toggle.playing .bgm-mute { display: none; }
+@media (prefers-reduced-motion: reduce) { #bgm-toggle.playing .bgm-wave i { animation: none; } }
 #panel { position: relative; }
 #dialog { position: relative; width: 100%; aspect-ratio: 716 / 178; background: url('assets/reference/dialog-blank.png') center / 100% 100% no-repeat; }
 .bubble { position: absolute; left: 31%; right: 9%; top: 43%; bottom: 14%; display: flex; align-items: center; min-width: 0; }

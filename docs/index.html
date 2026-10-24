@@ -14,6 +14,13 @@
       <canvas id="scene-motion" width="716" height="920" aria-hidden="true"></canvas>
       <div id="hud">
         <span id="coins" data-initial="true" role="status" aria-label="游戏金币">888</span>
+        <button type="button" id="bgm-toggle" aria-pressed="false" aria-label="播放背景音乐">
+          <span class="bgm-icon" aria-hidden="true">
+            <span class="bgm-wave"><i></i><i></i><i></i></span>
+            <span class="bgm-mute"></span>
+          </span>
+          <span class="sr-only">背景音乐开关</span>
+        </button>
       </div>
       <span id="scene-status" class="sr-only" role="status"></span>
       <div id="customer-dialogue">
@@ -50,6 +57,7 @@
   </main>
   <script src="static-api.js"></script>
   <script src="scene.js"></script>
+  <script src="bgm.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
