@@ -2,48 +2,56 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>麦门星球 · 点单游戏机</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>麦门星球 · AI 点单小游戏</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 上半屏：备餐厅场景（可替换成你搭的像素场景，对接点见 game.js 顶部注释） -->
-  <div id="scene-wrap">
-    <canvas id="scene" width="240" height="200"></canvas>
-    <!-- 号码牌高光时刻（真实取餐号） -->
-    <div id="plate" class="hidden">
-      <div class="plate-store" id="plate-store">麦门星球示例餐厅</div>
-      <div class="plate-no" id="plate-no">A88</div>
-      <div class="plate-hint">凭这个号去门店取餐 ↑</div>
+  <!-- 星空背景（桌面端手机壳外可见） -->
+  <div id="sky" class="stars"></div>
+
+  <!-- 手机机身 -->
+  <div id="phone" class="stars">
+    <div id="statusbar">
+      <span>9:41</span>
+      <span class="sb-right"><i class="sig"></i><i class="wifi"></i><i class="bat"></i></span>
+    </div>
+
+    <div id="app">
+      <!-- 顶部 HUD -->
+      <div id="hud">
+        <div class="coin"><span class="c-ico">¥</span><b id="coins">888</b></div>
+        <div class="welcome"><span class="mini-avatar" id="mini-avatar"></span><span>欢迎光临!</span></div>
+      </div>
+
+      <!-- 场景：像素门店 -->
+      <div id="scene-wrap">
+        <canvas id="scene" width="240" height="280"></canvas>
+        <!-- 招牌（DOM 层，文字更锐） -->
+        <div id="plaque"><span class="arch">M</span><span class="pt">麦门星球</span></div>
+        <!-- 取餐号高光时刻 -->
+        <div id="plate" class="hidden">
+          <div class="plate-store" id="plate-store">麦门星球示例餐厅</div>
+          <div class="plate-no" id="plate-no">No.888</div>
+          <div class="plate-hint">凭这个号去门店取餐 ↑</div>
+        </div>
+        <span id="mode-tag">demo</span>
+      </div>
+
+      <!-- 底部：对话 + 选项 + 主按钮 -->
+      <div id="panel">
+        <div id="dialog">
+          <div class="avatar" id="avatar"></div>
+          <div class="bubble"><span class="tag">小麦</span><span id="speech">今天想吃什么？</span></div>
+        </div>
+        <div id="card" class="hidden"></div>
+        <div id="options"></div>
+        <button id="primary"><span class="pico" id="pico">🍟</span><span id="primary-label">开始点餐 →</span></button>
+      </div>
     </div>
   </div>
 
-  <!-- 下半屏：游戏机（LCD + 按键） -->
-  <div id="console">
-    <div id="lcd">
-      <div id="lcd-title">McDONALD'S GamePlayer</div>
-      <div id="lcd-body"></div>
-      <div id="lcd-choices"></div>
-    </div>
-    <div id="pad">
-      <div id="dpad">
-        <button class="key" data-k="up">▲</button>
-        <button class="key" data-k="left">◀</button>
-        <button class="key" data-k="right">▶</button>
-        <button class="key" data-k="down">▼</button>
-      </div>
-      <div id="ab">
-        <button class="round" data-k="b">B</button>
-        <button class="round a" data-k="a">A</button>
-      </div>
-    </div>
-    <div id="meta">
-      <button class="pill" data-k="start">START · 下单</button>
-      <span id="mode-tag">demo</span>
-    </div>
-  </div>
-
-<script src="scene.js"></script>
-<script src="game.js"></script>
+  <script src="scene.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

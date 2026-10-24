@@ -28,7 +28,7 @@ HTTP Header 携带 `Authorization: Bearer <MCP_TOKEN>`，请求体为 MCP 标准
 
 - `MCP_MODE=demo` 仅用于开发联调，回放的数据结构与 live 模式完全一致（字段对齐真实取餐单：取餐号/门店/预计时间/状态）。
 - 演示录屏与评审环境一律使用 `MCP_MODE=live` 真实下单（详见 README 演示视频）。
-- 前端页面的运行模式标签（LCD 右下角 `demo`/`live`）实时反映当前模式，不作任何伪装。
+- 前端页面场景右下角的 `demo`/`live` 角标实时反映当前模式，不作任何伪装。
 
 ## 待 Token 到位后的适配清单
 
